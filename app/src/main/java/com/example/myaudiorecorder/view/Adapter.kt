@@ -1,4 +1,4 @@
-package com.example.myaudiorecorder.ui.view
+package com.example.myaudiorecorder.view
 
 import android.view.LayoutInflater
 import android.view.View

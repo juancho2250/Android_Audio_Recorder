@@ -15,6 +15,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -27,6 +28,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.FileProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.room.Room
@@ -34,9 +36,10 @@ import com.example.myaudiorecorder.R
 import com.example.myaudiorecorder.databinding.ActivityMainBinding
 import com.example.myaudiorecorder.db.AudioDataBase
 import com.example.myaudiorecorder.db.AudioRecord
-import com.example.myaudiorecorder.ui.view.Adapter
-import com.example.myaudiorecorder.ui.view.WaveFormView
+import com.example.myaudiorecorder.view.Adapter
+import com.example.myaudiorecorder.view.WaveFormView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
 import com.jmdev.myaudiorecorder.data.Timer
 import com.jmdev.myaudiorecorder.data.onItemClickListener
@@ -56,6 +59,7 @@ import java.util.Locale
 
 const val REQUEST_CODE = 200
 
+@Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClickListener {
 
     private lateinit var binding: ActivityMainBinding
@@ -85,6 +89,8 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
     private lateinit var searchInput: TextInputEditText
     private lateinit var bottomSheetBehavior: BottomSheetBehavior<LinearLayout>
     private lateinit var bottomSheetBehaviorRec: BottomSheetBehavior<LinearLayout>
+    private var seekBar: SeekBar? = null
+    private var ibPlay: ImageButton? = null
 
     private lateinit var timer: Timer
 
@@ -127,6 +133,10 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
         bottomSheetBehavior.peekHeight = 1
         bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
 
+        bottomSheetBehaviorRec = BottomSheetBehavior.from(bottomSheetRec)
+        bottomSheetBehaviorRec.peekHeight = 1
+        bottomSheetBehaviorRec.state = BottomSheetBehavior.STATE_COLLAPSED
+
         mediaPlayer = MediaPlayer()
         adapt.setDropDownViewResource(
             android.R.layout.simple_spinner_dropdown_item
@@ -151,7 +161,7 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
         }
 
         //state change when manually sliding
-        bottomSheetBehavior.addBottomSheetCallback(object :
+        bottomSheetBehavior.addBottomSheetCallback(/* callback = */ object :
             BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
@@ -298,59 +308,59 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
     }
 
     private fun share() {
-        // Filtra los elementos que están marcados como isChecked = true
         val selectedRecords = records.filter { it.isChecked }
-        if (selectedRecords.isNotEmpty()) {
-            val intent = Intent().apply {
-                action = Intent.ACTION_SEND_MULTIPLE
-                type = "audio/*"
-
-                val uris = ArrayList<Uri>()
-                for (record in selectedRecords) {
-                    val file = File(record.filepath)
-                    val uri = FileProvider.getUriForFile(
-                        this@MainActivity,
-                        this@MainActivity.packageName + ".fileprovider",
-                        file
-                    )
-                    uris.add(uri)
-                }
-                putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
-            }
-            startActivity(Intent.createChooser(intent, "Compartir grabaciones"))
-        } else {
-            Toast.makeText(
-                this,
+        if (selectedRecords.isEmpty()) {
+            Snackbar.make(
+                findViewById(android.R.id.content),
                 "No se han seleccionado grabaciones para compartir",
-                Toast.LENGTH_SHORT
+                Snackbar.LENGTH_SHORT
             ).show()
+            return
         }
+
+        val intent = Intent().apply {
+            action = Intent.ACTION_SEND_MULTIPLE
+            type = "audio/*"
+
+            val uris = ArrayList<Uri>()
+            selectedRecords.forEach {
+                val file = File(it.filepath)
+                val uri =
+                    FileProvider.getUriForFile(this@MainActivity, "$packageName.fileprovider", file)
+                uris.add(uri)
+            }
+            putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+        }
+
+        startActivity(Intent.createChooser(intent, "Compartir grabaciones"))
     }
 
     private fun deleteRecords() {
-        //builder crea el dialogo para cancelar/confimar la accion
         val builder = AlertDialog.Builder(this)
-        builder.setTitle("Borrar audio?")
-        //nbRecords cuenta cuantos audios hay con la condicion isChecked=true
+        builder.setTitle(getString(R.string.delete_audio_title))
+
         val nbRecords = records.count { it.isChecked }
-        builder.setMessage("¿Está seguro de que quiere borrar $nbRecords audio/s?")
-        builder.setPositiveButton("Borrar") { _, _ ->
+        builder.setMessage(getString(R.string.delete_audio_message, nbRecords))
+
+        builder.setPositiveButton(getString(R.string.delete)) { _, _ ->
             val toDelete = records.filter { it.isChecked }.toTypedArray()
-            //elimina los audio y reconstruye la vista
-            GlobalScope.launch {
-                this.run {
+
+            lifecycleScope.launch {
+                withContext(Dispatchers.IO) {
                     db.audioRecordDao().delete(toDelete)
-                    records.removeAll(toDelete)
-                    withContext(Dispatchers.Main) {
-                        mAdapter.notifyDataSetChanged()
-                        leaveEditMode()
-                    }
+                }
+                records.removeAll(toDelete)
+
+                withContext(Dispatchers.Main) {
+                    mAdapter.notifyDataSetChanged()
+                    leaveEditMode()
                 }
             }
         }
-        builder.setNegativeButton("Cancelar") { _, _ ->
+        builder.setNegativeButton(getString(R.string.cancel)) { _, _ ->
             leaveEditMode()
         }
+
         builder.show()
     }
 
@@ -381,97 +391,137 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
         }
     }
 
-    private fun playPausePlayer() {
+    private fun initViews() {
         val root: View = binding.root
-        val seekBar = root.findViewById<SeekBar>(R.id.seekBar)
-        val ibPlay = root.findViewById<ImageButton>(R.id.ibPlay)
-        seekBar.max = mediaPlayer.duration
+        seekBar = root.findViewById(R.id.seekBar)
+        ibPlay = root.findViewById(R.id.ibPlay)
+    }
+
+    private fun playPausePlayer() {
+
+        if (seekBar == null || ibPlay == null) {
+            initViews()
+        }
+
+        seekBar?.max = mediaPlayer.duration
+
         if (!mediaPlayer.isPlaying) {
-            mediaPlayer.start()
-            ibPlay.setImageResource(R.drawable.ic_pause_24)
-            handler.postDelayed(runnable, delay)
+            startMediaPlayer()
         } else {
-            mediaPlayer.pause()
-            ibPlay.setImageResource(R.drawable.ic_play_24)
-            handler.removeCallbacks(runnable)
+            pauseMediaPlayer()
         }
     }
 
+    private fun startMediaPlayer() {
+        mediaPlayer.start()
+        ibPlay?.setImageResource(android.R.drawable.ic_media_pause)
+        handler.postDelayed(runnable, delay)
+    }
+
+    private fun pauseMediaPlayer() {
+        mediaPlayer.pause()
+        ibPlay?.setImageResource(android.R.drawable.ic_media_play)
+        handler.removeCallbacks(runnable)
+    }
+
     private fun save() {
-        val waveFormView = binding.waveForm
-        waveFormView.visibility = View.GONE
-        val recyclerRec = binding.recyclerRec
-        recyclerRec.visibility = View.VISIBLE
-        val root = binding.root
-        val recTitle = root.findViewById<TextInputEditText>(R.id.recTitle)
+        runOnUiThread {
+            binding.waveForm.visibility = View.GONE
+            binding.recyclerRec.visibility = View.VISIBLE
 
-        val newFileName = recTitle.text.toString()
-
-        if (filename != newFileName) {
-            val oldFile = File(filename)
-            val newFile = File(oldFile.parentFile, "$newFileName.mp3")
-
-            if (oldFile.renameTo(newFile)) {
-                filename = newFile.absolutePath
+            val recTitle = binding.root.findViewById<TextInputEditText>(R.id.recTitle)
+            val newFileName = recTitle.text.toString()
+            if (filename.equals(newFileName)) {
+                val ampsPath = filename
+                val record = AudioRecord(newFileName, filepath, Date().time, duration, filename)
+                GlobalScope.launch {
+                    db.audioRecordDao().Insert(record)
+                }
+                try {
+                    saveAmplitudesToFile(ampsPath)
+                } catch (ioException: IOException) {
+                    showToast("Error al guardar amplitudes: ${ioException.message}")
+                }
+                updateRecyclerView()
+                stopRecorder()
             } else {
-                Toast.makeText(
-                    this,
-                    "No se pudo cambiar el nombre del archivo.",
-                    Toast.LENGTH_SHORT
-                ).show()
+                renameFile(newFileName)
             }
         }
-        val filePath = filepath
-        val timestamp = Date().time
-        val ampsPath = filename
-        try {
-            var fos = FileOutputStream(ampsPath)
-            var out = ObjectOutputStream(fos)
-            out.writeObject(amplitudes)
-            fos.close()
-            out.close()
-        } catch (exceptio: IOException) {
-            var record = AudioRecord(newFileName, filePath, timestamp, duration, ampsPath)
-            GlobalScope.launch {
-                db.audioRecordDao().Insert(record)
+    }
+
+    private fun renameFile(newFileName: String) {
+        val oldFile = File(filename)
+        val newFile = File(oldFile.parentFile, "$newFileName.mp3")
+
+        if (oldFile.renameTo(newFile)) {
+            filename = newFile.absolutePath
+        } else {
+            showToast("No se pudo cambiar el nombre del archivo.")
+        }
+    }
+
+    private fun saveAmplitudesToFile(ampsPath: String) {
+        FileOutputStream(ampsPath).use { fos ->
+            ObjectOutputStream(fos).use { out ->
+                out.writeObject(amplitudes)
             }
         }
-        recyclerRec.apply {
+    }
+
+    private fun showToast(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun updateRecyclerView() {
+        binding.recyclerRec.apply {
             adapter = mAdapter
             layoutManager = LinearLayoutManager(context)
             fetchAll()
         }
+
         sizeUpdateTimer?.stop()
         sizeUpdateTimer = null
-        stopRecorder()
     }
 
     private fun fetchAll() {
         GlobalScope.launch {
             records.clear()
-            var queryResult = db.audioRecordDao().getAll()
-            records.addAll(queryResult)
 
-            mAdapter.notifyDataSetChanged()
+            try {
+                // Cambiar al hilo de fondo para realizar operaciones de base de datos
+                val queryResult = withContext(Dispatchers.IO) {
+                    db.audioRecordDao().getAll()
+                }
+
+                // Cambiar al hilo principal para actualizar la interfaz de usuario
+                withContext(Dispatchers.Main) {
+                    records.addAll(queryResult)
+                    mAdapter.notifyDataSetChanged()
+                }
+            } catch (e: Exception) {
+                // Manejar cualquier excepción que pueda ocurrir
+                Log.e("MainActivity", "Error al obtener datos de la base de datos", e)
+            }
         }
     }
 
     private fun pauseRecorder() {
         recorder.pause()
-        isPaused = true
         timer.pause()
 
-        val ibRec = binding.ibRec
-        ibRec.setImageResource(R.drawable.ic_stop_24)
+        binding.ibRec?.let {
+            it.setImageResource(android.R.drawable.ic_media_pause)
+        }
     }
 
     private fun resumeRecording() {
         recorder.resume()
-        isPaused = false
         timer.start()
 
-        val ibRec = binding.ibRec
-        ibRec.setImageResource(R.drawable.ic_pause_24)
+        binding.ibRec?.let {
+            it.setImageResource(android.R.drawable.ic_media_pause)
+        }
     }
 
     private fun deleteRecording() {
@@ -489,48 +539,42 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
     private fun startRecording() {
         val waveFormView = binding.waveForm
         waveFormView.visibility = View.VISIBLE
-        //limpia waveForm antes de comenzar a grabar
         waveFormView.clearData()
+
         val recyclerRec = binding.recyclerRec
         recyclerRec.visibility = View.GONE
-        val ibCancel = binding.ibCancel
-        ibCancel.isClickable = true
+        binding.ibCancel.isClickable = true
 
-        //captura la fecha actual
-        val simpleDateFormat = SimpleDateFormat("yyyy.MM.DD_hh.mm", Locale.getDefault())
-        val date = simpleDateFormat.format(Date())
-        //establece la ruta al archivo
-        val externalStorageDir = this.getExternalFilesDir(null)
+        val date = SimpleDateFormat("yyyy.MM.DD_hh.mm", Locale.getDefault()).format(Date())
         filename = "Recorder_$date"
 
+        val externalStorageDir = this.getExternalFilesDir(null)
+
         if (externalStorageDir != null) {
-
-            val recorder = MediaRecorder()
-            //setea la calidad del audio seleccionada
-            val spinner = binding.spinner
-            when (spinner.selectedItem.toString()) {
-                "Calidad Alta" -> {
-                    recorder.setAudioEncodingBitRate(96000)
-                    recorder.setAudioSamplingRate(44100)
-                }
-
-                "Calidad Media" -> {
-                    recorder.setAudioEncodingBitRate(64000)
-                    recorder.setAudioSamplingRate(22050)
-                }
-
-                "Calidad Baja" -> {
-                    recorder.setAudioEncodingBitRate(32000)
-                    recorder.setAudioSamplingRate(11025)
-                }
-            }
-            filepath = "${externalStorageDir?.absolutePath}/$filename"
-
-            //setea mediaRecorder
-            recorder.apply {
+            val recorder = MediaRecorder().apply {
                 setAudioSource(MediaRecorder.AudioSource.MIC)
                 setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
                 setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+
+                val spinner = binding.spinner
+                when (spinner.selectedItem.toString()) {
+                    "Calidad Alta" -> {
+                        setAudioEncodingBitRate(96000)
+                        setAudioSamplingRate(44100)
+                    }
+
+                    "Calidad Media" -> {
+                        setAudioEncodingBitRate(64000)
+                        setAudioSamplingRate(22050)
+                    }
+
+                    "Calidad Baja" -> {
+                        setAudioEncodingBitRate(32000)
+                        setAudioSamplingRate(11025)
+                    }
+                }
+
+                filepath = "${externalStorageDir.absolutePath}/$filename"
                 setOutputFile(filepath)
 
                 try {
@@ -543,76 +587,66 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
                     handler.postDelayed(object : Runnable {
                         override fun run() {
                             if (isRecording) {
-                                //va mostrando el tamaño del archivo de audio
-                                val outputFile = File(filepath)
-                                val fileSize = outputFile.length()
-                                val fileSizeString = when {
-                                    fileSize >= 1024 * 1024 -> String.format(
-                                        "%.2f MB",
-                                        fileSize.toFloat() / (1024 * 1024)
-                                    )
-
-                                    fileSize >= 1024 -> String.format(
-                                        "%.2f KB",
-                                        fileSize.toFloat() / 1024
-                                    )
-
-                                    else -> String.format("%d bytes", fileSize)
-                                }
-                                val tvSize = binding.tvSize
-                                tvSize.text = fileSizeString
-                                //el tamaño se actualiza cada medio segundo
+                                updateFileSize()
                                 handler.postDelayed(this, 500)
                             }
                         }
                     }, 0)
                 } catch (exception: IOException) {
-                    Toast.makeText(
-                        this@MainActivity,
-                        "Error al iniciar la grabación: $exception",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Log.e("MainActivity", "Error al iniciar la grabación", exception)
+                    showSnackbar(getString(R.string.recording_error))
                 }
                 isRecording = true
             }
 
             this.recorder = recorder
         } else {
-            Toast.makeText(
-                this,
-                "No se pudo acceder al almacenamiento externo",
-                Toast.LENGTH_SHORT
-            ).show()
+            showSnackbar(getString(R.string.storage_access_error))
         }
 
-        val ibRec = binding.ibRec
-        ibRec.setImageResource(R.drawable.ic_pause_24)
+        binding.ibRec.setImageResource(R.drawable.ic_pause_24)
+    }
+
+    private fun updateFileSize() {
+        val outputFile = File(filepath)
+        val fileSize = outputFile.length()
+        val fileSizeString = when {
+            fileSize >= 1024 * 1024 -> String.format("%.2f MB", fileSize.toFloat() / (1024 * 1024))
+            fileSize >= 1024 -> String.format("%.2f KB", fileSize.toFloat() / 1024)
+            else -> String.format("%d bytes", fileSize)
+        }
+        binding.tvSize.text = fileSizeString
+    }
+
+    private fun showSnackbar(message: String) {
+        Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()
     }
 
     private fun stopRecorder() {
-        val root = binding.root
-        val tvTimer = root.findViewById<TextView>(R.id.tvTimer)
-        val ibRec = root.findViewById<ImageButton>(R.id.ibRec)
-        val tvSize = root.findViewById<TextView>(R.id.tvSize)
-        tvSize.setText("0.0 Mb")
-        tvTimer.setText("00:00:00")
+        val tvTimer = binding.tvTimer
+        val ibRec = binding.ibRec
+        val tvSize = binding.tvSize
+
+        tvSize.text = "0.0 Mb"
+        tvTimer.text = "00:00:00"
         ibRec.setImageResource(R.drawable.ic_stop_24)
-        waveFormView.visibility = View.GONE
-        recyclerRec.visibility = View.VISIBLE
+
+        binding.waveForm.visibility = View.GONE
+        binding.recyclerRec.visibility = View.VISIBLE
+
         if (isRecording) {
-            //libera la instancia de mediaRecorder
+            // Libera la instancia de MediaRecorder
             timer.stop()
             recorder.stop()
-            recorder.reset()
             recorder.release()
             isRecording = false
             isPaused = false
         }
+
         sizeUpdateTimer?.stop()
         sizeUpdateTimer = null
-        val btnRec = binding.ibRec
-        btnRec.setImageResource(R.drawable.ic_stop_24)
-        waveFormView.reset()
+
+        binding.waveForm.reset()
     }
 
     override fun onTimeTick(duration: String) {
@@ -640,7 +674,7 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
             mediaPlayer.stop()
             mediaPlayer.reset()
             mediaPlayer.release()
-            //crea y setea nueva instan
+            //se crea una nueva instancia de media player y se setea
             mediaPlayer = MediaPlayer()
             mediaPlayer.apply {
                 setDataSource(audioRecord.filepath)

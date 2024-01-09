@@ -9,4 +9,11 @@
 
     <string name="titulo">Titulo</string>
 
+    <string name="delete_audio_title">Borrar audio?</string>
+    <string name="delete_audio_message">¿Está seguro de que quiere borrar %1$d audio/s?</string>
+    <string name="delete">Borrar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="recording_error">Error al iniciar la grabación</string>
+    <string name="storage_access_error">No se pudo acceder al almacenamiento externo</string>
+
 </resources>
