@@ -47,19 +47,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1.0" />
 
-        <ImageButton
-            android:id="@+id/ibBackward"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:background="@drawable/ic_record"
-            android:elevation="8dp"
-            android:src="@drawable/ic_replay_10_24"
-            android:textColor="@color/white" />
 
-        <Space
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1.0" />
 
         <ImageButton
             android:id="@+id/ibPlay"
@@ -81,7 +69,7 @@
             android:layout_height="50dp"
             android:background="@drawable/ic_record"
             android:elevation="8dp"
-            android:src="@drawable/ic_forward_10_24" />
+            android:src="@drawable/ic_stop_24" />
 
         <Space
             android:layout_width="wrap_content"

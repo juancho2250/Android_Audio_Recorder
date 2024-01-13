@@ -1,6 +1,7 @@
 package com.example.myaudiorecorder.control
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -15,7 +16,6 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -23,7 +23,6 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -44,14 +43,13 @@ import com.google.android.material.textfield.TextInputEditText
 import com.jmdev.myaudiorecorder.data.Timer
 import com.jmdev.myaudiorecorder.data.onItemClickListener
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
-import java.io.ObjectOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -59,7 +57,9 @@ import java.util.Locale
 
 const val REQUEST_CODE = 200
 
+@OptIn(DelicateCoroutinesApi::class)
 @Suppress("DEPRECATION")
+@SuppressLint("NotifyDataSetChanged")
 class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClickListener {
 
     private lateinit var binding: ActivityMainBinding
@@ -69,7 +69,6 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
     )
     private var permissionGranted = false
     private var sizeUpdateTimer: Timer? = null
-    private lateinit var amplitudes: ArrayList<Float>
     private lateinit var records: MutableList<AudioRecord>
     private lateinit var mAdapter: Adapter
     private lateinit var mediaPlayer: MediaPlayer
@@ -91,9 +90,10 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
     private lateinit var bottomSheetBehaviorRec: BottomSheetBehavior<LinearLayout>
     private var seekBar: SeekBar? = null
     private var ibPlay: ImageButton? = null
-
+    private var isRippleIcon = false
     private lateinit var timer: Timer
 
+    @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -105,11 +105,8 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
         val bottomSheet = root.findViewById<LinearLayout>(R.id.bottomSheet)
         val bottomSheetRec = root.findViewById<LinearLayout>(R.id.bottomSheetRec)
         val ibPlay = root.findViewById<ImageButton>(R.id.ibPlay)
-        val seekBar = root.findViewById<SeekBar>(R.id.seekBar)
-        val ibBackward = root.findViewById<ImageButton>(R.id.ibBackward)
-        val ibForward = root.findViewById<ImageButton>(R.id.ibForward)
+
         val ibDelete = root.findViewById<ImageButton>(R.id.ibDelete)
-        val jumpValue = 1000
         val ibRec = binding.ibRec
         val ibDone = binding.ibDone
         val ibCancel = binding.ibCancel
@@ -159,7 +156,6 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
             layoutManager = LinearLayoutManager(context)
             fetchAll()
         }
-
         //state change when manually sliding
         bottomSheetBehavior.addBottomSheetCallback(/* callback = */ object :
             BottomSheetBehavior.BottomSheetCallback() {
@@ -176,21 +172,12 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
         timer = Timer(this)
         vibrator = this.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
 
-        handler = Handler(Looper.getMainLooper())
-        runnable = Runnable {
-            if (mediaPlayer.isPlaying) {
-                seekBar.max = mediaPlayer.duration
-                seekBar.progress = mediaPlayer.currentPosition
-                handler.postDelayed(runnable, delay)
-            }
-        }
-
         searchInput.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
             }
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                var query = s.toString()
+                val query = s.toString()
                 searchDatabase(query)
             }
 
@@ -203,15 +190,6 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
         }
         ibPlay.setOnClickListener {
             playPausePlayer()
-        }
-        playPausePlayer()
-        ibForward.setOnClickListener {
-            mediaPlayer.seekTo(mediaPlayer.currentPosition + jumpValue)
-            seekBar.progress += jumpValue
-        }
-        ibBackward.setOnClickListener {
-            mediaPlayer.seekTo(mediaPlayer.currentPosition - jumpValue)
-            seekBar.progress -= jumpValue
         }
         ibCancel.setOnClickListener {
             stopRecorder()
@@ -241,44 +219,21 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
                 bottomSheetBG.visibility = View.VISIBLE
                 val currentDate =
                     SimpleDateFormat("yyyy.MM.dd_hh:mm", Locale.getDefault()).format(Date())
-                recTitle.setText("Recorder_$currentDate.mp3")
+                recTitle.setText("Recorder_$currentDate")
             }
         }
         btnCancel.setOnClickListener {
             bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
         }
         btnSave.setOnClickListener {
-            try {
-                save()
-                bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
-                Toast.makeText(this, "Audio guardado", Toast.LENGTH_SHORT).show()
-            } catch (e: IOException) {
-                Toast.makeText(this, "Error $e", Toast.LENGTH_SHORT).show()
-            }
+            save()
+            bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
         }
         ibDelete.setOnClickListener {
             deleteRecords()
         }
-        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (fromUser) {
-                    //actualiza la posición del MediaPlayer
-                    mediaPlayer.seekTo(progress)
-                }
-            }
 
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {
-                // Pausa el MediaPlayer mientras el usuario interactúa con SeekBar
-                mediaPlayer.pause()
-            }
-
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                // Reanuda la reproducción cuando el usuario deja de interactuar con SeekBar
-                mediaPlayer.start()
-            }
-        })
     }
-
     private fun checkPermissions() {
         permissionGranted = ActivityCompat.checkSelfPermission(
             this,
@@ -289,11 +244,9 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
             requestPermissions()
         }
     }
-
     private fun requestPermissions() {
         ActivityCompat.requestPermissions(this, permissions, REQUEST_CODE)
     }
-
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -306,7 +259,6 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
                 grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
         }
     }
-
     private fun share() {
         val selectedRecords = records.filter { it.isChecked }
         if (selectedRecords.isEmpty()) {
@@ -334,51 +286,52 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
 
         startActivity(Intent.createChooser(intent, "Compartir grabaciones"))
     }
-
     private fun deleteRecords() {
-        val builder = AlertDialog.Builder(this)
-        builder.setTitle(getString(R.string.delete_audio_title))
-
         val nbRecords = records.count { it.isChecked }
-        builder.setMessage(getString(R.string.delete_audio_message, nbRecords))
 
-        builder.setPositiveButton(getString(R.string.delete)) { _, _ ->
-            val toDelete = records.filter { it.isChecked }.toTypedArray()
+        if (nbRecords > 0) {
+            val builder = AlertDialog.Builder(this)
+            builder.setTitle(getString(R.string.delete_audio_title))
 
-            lifecycleScope.launch {
-                withContext(Dispatchers.IO) {
-                    db.audioRecordDao().delete(toDelete)
+            builder.setMessage(getString(R.string.delete_audio_message, nbRecords))
+
+            builder.setPositiveButton(getString(R.string.delete)) { _, _ ->
+                val toDelete = records.filter { it.isChecked }.toTypedArray()
+
+                lifecycleScope.launch {
+                    withContext(Dispatchers.IO) {
+                        db.audioRecordDao().delete(toDelete)
+                    }
+                    records.removeAll(toDelete.toSet())
+
+                    withContext(Dispatchers.Main) {
+                        mAdapter.notifyDataSetChanged()
+                        leaveEditMode()
+                    }
                 }
-                records.removeAll(toDelete)
-
-                withContext(Dispatchers.Main) {
-                    mAdapter.notifyDataSetChanged()
-                    leaveEditMode()
-                }
+                showSnackb("Borrado exitoso")
             }
+            builder.setNegativeButton(getString(R.string.cancel)) { _, _ ->
+                leaveEditMode()
+            }
+            builder.show()
+        } else {
+            showSnackb("Mantenga presionado el audio a borrar")
         }
-        builder.setNegativeButton(getString(R.string.cancel)) { _, _ ->
-            leaveEditMode()
-        }
-
-        builder.show()
     }
-
     private fun leaveEditMode() {
         records.map { it.isChecked = false }
         mAdapter.setEditMode(false)
         bottomSheetBehaviorRec.state = BottomSheetBehavior.STATE_COLLAPSED
     }
-
     private fun enableDelete() {
         val root = binding.root
         val ibDelete = root.findViewById<ImageButton>(R.id.ibDelete)
         ibDelete.isClickable = true
     }
-
     private fun searchDatabase(query: String) {
         CoroutineScope(Dispatchers.IO).launch {
-            val lowercaseQuery = query.toLowerCase()
+            val lowercaseQuery = query.toLowerCase(Locale.ROOT)
 
             // Realizar una búsqueda insensible a mayúsculas y minúsculas
             val queryResult = db.audioRecordDao().searchDatabase("%$lowercaseQuery%")
@@ -390,140 +343,101 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
             }
         }
     }
-
-    private fun initViews() {
-        val root: View = binding.root
+    private fun playPausePlayer() {
+        val root = binding.root
         seekBar = root.findViewById(R.id.seekBar)
         ibPlay = root.findViewById(R.id.ibPlay)
-    }
-
-    private fun playPausePlayer() {
-
-        if (seekBar == null || ibPlay == null) {
-            initViews()
-        }
 
         seekBar?.max = mediaPlayer.duration
 
-        if (!mediaPlayer.isPlaying) {
-            startMediaPlayer()
+        // Initialize handler and runnable only if not initialized yet
+        if (!::handler.isInitialized) {
+            handler = Handler(Looper.getMainLooper())
+            runnable = Runnable {
+                seekBar?.max = mediaPlayer.duration
+                seekBar?.progress = mediaPlayer.currentPosition
+                handler.postDelayed(runnable, delay)
+            }
+        }
+        seekBar!!.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    mediaPlayer.seekTo(progress)
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                mediaPlayer.pause()
+            }
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                mediaPlayer.start()
+            }
+        })
+
+        if (mediaPlayer.isPlaying) {
+            // If MediaPlayer is currently playing, pause it
+            ibPlay!!.setImageResource(R.drawable.ic_pause_24)
+            mediaPlayer.pause()
+            handler.removeCallbacks(runnable)
+
         } else {
-            pauseMediaPlayer()
+            // If MediaPlayer is paused, start it
+            ibPlay!!.setImageResource(R.drawable.ic_play_24)
+            mediaPlayer.start()
         }
     }
-
-    private fun startMediaPlayer() {
-        mediaPlayer.start()
-        ibPlay?.setImageResource(android.R.drawable.ic_media_pause)
-        handler.postDelayed(runnable, delay)
-    }
-
-    private fun pauseMediaPlayer() {
-        mediaPlayer.pause()
-        ibPlay?.setImageResource(android.R.drawable.ic_media_play)
-        handler.removeCallbacks(runnable)
-    }
-
     private fun save() {
-        runOnUiThread {
-            binding.waveForm.visibility = View.GONE
-            binding.recyclerRec.visibility = View.VISIBLE
+        try {
+            runOnUiThread {
+                binding.waveForm.visibility = View.GONE
+                binding.recyclerRec.visibility = View.VISIBLE
 
-            val recTitle = binding.root.findViewById<TextInputEditText>(R.id.recTitle)
-            val newFileName = recTitle.text.toString()
-            if (filename.equals(newFileName)) {
-                val ampsPath = filename
-                val record = AudioRecord(newFileName, filepath, Date().time, duration, filename)
+                val recTitle = binding.root.findViewById<TextInputEditText>(R.id.recTitle)
+                val inputFileName = recTitle?.text?.toString() ?: "default_filename"
+                val fileName = "$inputFileName.mp3"
+                val record = AudioRecord(fileName, filepath, Date().time, duration, filename)
+
                 GlobalScope.launch {
                     db.audioRecordDao().Insert(record)
+                    fetchAll()
+                    showSnackb(resources.getString(R.string.saveOk))
                 }
-                try {
-                    saveAmplitudesToFile(ampsPath)
-                } catch (ioException: IOException) {
-                    showToast("Error al guardar amplitudes: ${ioException.message}")
-                }
-                updateRecyclerView()
+
                 stopRecorder()
-            } else {
-                renameFile(newFileName)
             }
+        } catch (e: Exception) {
+            showSnackb(resources.getString(R.string.saveNotOk))
         }
     }
-
-    private fun renameFile(newFileName: String) {
-        val oldFile = File(filename)
-        val newFile = File(oldFile.parentFile, "$newFileName.mp3")
-
-        if (oldFile.renameTo(newFile)) {
-            filename = newFile.absolutePath
-        } else {
-            showToast("No se pudo cambiar el nombre del archivo.")
-        }
-    }
-
-    private fun saveAmplitudesToFile(ampsPath: String) {
-        FileOutputStream(ampsPath).use { fos ->
-            ObjectOutputStream(fos).use { out ->
-                out.writeObject(amplitudes)
-            }
-        }
-    }
-
-    private fun showToast(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-    }
-
-    private fun updateRecyclerView() {
-        binding.recyclerRec.apply {
-            adapter = mAdapter
-            layoutManager = LinearLayoutManager(context)
-            fetchAll()
-        }
-
-        sizeUpdateTimer?.stop()
-        sizeUpdateTimer = null
-    }
-
     private fun fetchAll() {
+        val error = resources.getString(R.string.error)
         GlobalScope.launch {
             records.clear()
 
             try {
-                // Cambiar al hilo de fondo para realizar operaciones de base de datos
                 val queryResult = withContext(Dispatchers.IO) {
                     db.audioRecordDao().getAll()
                 }
-
-                // Cambiar al hilo principal para actualizar la interfaz de usuario
-                withContext(Dispatchers.Main) {
+                 withContext(Dispatchers.Main) {
                     records.addAll(queryResult)
                     mAdapter.notifyDataSetChanged()
                 }
             } catch (e: Exception) {
-                // Manejar cualquier excepción que pueda ocurrir
-                Log.e("MainActivity", "Error al obtener datos de la base de datos", e)
+                showSnackb("$error $e")
             }
         }
     }
-
     private fun pauseRecorder() {
         recorder.pause()
         timer.pause()
 
-        binding.ibRec?.let {
-            it.setImageResource(android.R.drawable.ic_media_pause)
-        }
+        binding.ibRec.setImageResource(android.R.drawable.ic_media_pause)
     }
-
     private fun resumeRecording() {
         recorder.resume()
         timer.start()
 
-        binding.ibRec?.let {
-            it.setImageResource(android.R.drawable.ic_media_pause)
-        }
+        binding.ibRec.setImageResource(android.R.drawable.ic_media_pause)
     }
-
     private fun deleteRecording() {
         //detiene la grabacion y elimina el archivo temporal
         if (isRecording) {
@@ -535,8 +449,10 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
         }
         bottomSheetBehaviorRec.state = BottomSheetBehavior.STATE_COLLAPSED
     }
-
     private fun startRecording() {
+        if(mediaPlayer.isPlaying){
+            mediaPlayer.stop()
+        }
         val waveFormView = binding.waveForm
         waveFormView.visibility = View.VISIBLE
         waveFormView.clearData()
@@ -593,20 +509,18 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
                         }
                     }, 0)
                 } catch (exception: IOException) {
-                    Log.e("MainActivity", "Error al iniciar la grabación", exception)
-                    showSnackbar(getString(R.string.recording_error))
+                    showSnackb(getString(R.string.recording_error))
                 }
                 isRecording = true
             }
 
             this.recorder = recorder
         } else {
-            showSnackbar(getString(R.string.storage_access_error))
+            showSnackb(getString(R.string.storage_access_error))
         }
 
         binding.ibRec.setImageResource(R.drawable.ic_pause_24)
     }
-
     private fun updateFileSize() {
         val outputFile = File(filepath)
         val fileSize = outputFile.length()
@@ -617,18 +531,16 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
         }
         binding.tvSize.text = fileSizeString
     }
-
-    private fun showSnackbar(message: String) {
+    private fun showSnackb(message: String) {
         Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()
     }
-
     private fun stopRecorder() {
         val tvTimer = binding.tvTimer
         val ibRec = binding.ibRec
         val tvSize = binding.tvSize
 
-        tvSize.text = "0.0 Mb"
-        tvTimer.text = "00:00:00"
+        tvSize.text = resources.getString(R.string.size)
+        tvTimer.text = resources.getString(R.string.crono)
         ibRec.setImageResource(R.drawable.ic_stop_24)
 
         binding.waveForm.visibility = View.GONE
@@ -648,7 +560,6 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
 
         binding.waveForm.reset()
     }
-
     override fun onTimeTick(duration: String) {
         //se envian datos al waveFormView para convertirlos en picos
         val tvTimer = binding.tvTimer
@@ -656,25 +567,21 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
         waveFormView = binding.waveForm
         waveFormView.addAmplitud(recorder.maxAmplitude.toFloat())
     }
-
     override fun onItemClickListener(position: Int) {
-        //seleccion de audio para su reproduccion
+        //select audio to play
         val root = binding.root
-        var audioRecord = records[position]
+        val audioRecord = records[position]
         if (mAdapter.isEditMode()) {
-            /*si se ejecuto un longClick mAdapter entra en modo edit
-            y desabilita la reproduccion*/
-            var nbSelected = records.count { it.isChecked }
+            val nbSelected = records.count { it.isChecked }
             if (nbSelected != 0) enableDelete()
             records[position].isChecked = !records[position].isChecked
             mAdapter.notifyItemChanged(position)
         } else {
-            //se verifica que no exista ninguna instancia creada
-            //de mediaPLayer
+            //kill media old player
             mediaPlayer.stop()
             mediaPlayer.reset()
             mediaPlayer.release()
-            //se crea una nueva instancia de media player y se setea
+            //new media player
             mediaPlayer = MediaPlayer()
             mediaPlayer.apply {
                 setDataSource(audioRecord.filepath)
@@ -691,14 +598,13 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
         }
         bottomSheetBehaviorRec.state = BottomSheetBehavior.STATE_EXPANDED
         val tvRec = root.findViewById<TextView>(R.id.tvRec)
-        tvRec.setText(audioRecord.ampsPath)
+        tvRec.text = audioRecord.filename
     }
-
     override fun onItemLongClickListener(position: Int) {
         val root = binding.root
         //edit mode on
         mAdapter.setEditMode(true)
-        records[position].isChecked != records[position].isChecked
+        records[position].isChecked = !records[position].isChecked
         mAdapter.notifyItemChanged(position)
 
         val ibDelete = root.findViewById<ImageButton>(R.id.ibDelete)

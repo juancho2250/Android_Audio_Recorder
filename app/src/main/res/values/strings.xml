@@ -2,7 +2,7 @@
     <string name="app_name">My Audio Recorder</string>
 
     <string name="crono">00:00</string>
-    <string name="size">0 Mb</string>
+    <string name="size">0.0 Mb</string>
 
     <string name="btnCancel">Cancelar</string>
     <string name="btnGuardar">Guardar</string>
@@ -15,5 +15,9 @@
     <string name="cancel">Cancelar</string>
     <string name="recording_error">Error al iniciar la grabación</string>
     <string name="storage_access_error">No se pudo acceder al almacenamiento externo</string>
+
+    <string name="saveOk">Guardado con éxito</string>
+    <string name="saveNotOk">Error al guardar</string>
+    <string name="error">Error en base de datos</string>
 
 </resources>

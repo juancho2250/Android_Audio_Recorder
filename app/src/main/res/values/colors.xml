@@ -3,22 +3,18 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <color name="background">#011B60</color>
-    <color name="start">#092878</color>
-    <color name="center">#214193</color>
-    <color name="end">#2F58C3</color>
-
     <color name="btn1">#4CAF50</color>
     <color name="btn2">#009688</color>
     <color name="btn3">#FF5722</color>
-    <color name="btnText">#fff</color>
+    <color name="btnText">#2E2E2E</color>
 
     <color name="opaque">#77000000</color>
 
     <color name="recordEnd">#75AF4C</color>
     <color name="recordCenter">#0A640E</color>
 
-    <color name="fill">#768BC3</color>
+    <color name="fill">#FFFFFF</color>
+    <color name="fill2">#111110</color>
 
     <color name="rippleEnd">#BB3018</color>
     <color name="rippleCenter">#690E08</color>

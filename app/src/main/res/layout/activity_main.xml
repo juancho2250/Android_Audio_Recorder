@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/splash_background"
+    android:background="@color/fill2"
     android:padding="10dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -14,26 +15,21 @@
             android:id="@+id/waveForm"
             android:layout_width="match_parent"
             android:layout_height="440px"
-            android:layout_marginTop="156dp"
-            android:background="@drawable/wave_background"
+            android:layout_marginTop="108dp"
             android:elevation="8dp"
             android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="@id/constraintLayout"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.0" />
+            app:layout_constraintTop_toTopOf="@id/textInputLayout" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/textInputLayout"
             style="@style/SearchInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="15dp"
             app:hintEnabled="false"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
@@ -41,145 +37,124 @@
                 android:id="@+id/searchInput"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_marginTop="10dp"
                 android:fontFamily="@font/candara"
-                android:gravity="center_vertical"
+                android:gravity="center"
                 android:hint=""
                 android:imeOptions="actionSearch"
                 android:inputType="text"
-                android:textColor="@color/white" />
+                android:textColor="@color/black" />
 
         </com.google.android.material.textfield.TextInputLayout>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerRec"
-            android:layout_width="match_parent"
-            android:layout_height="383dp"
+            android:layout_width="384dp"
+            android:layout_height="405dp"
+            android:layout_marginTop="15dp"
             android:padding="10dp"
-            app:layout_constraintBottom_toTopOf="@+id/constraintLayout"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/textInputLayout" />
 
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/constraintLayout"
+        <TextView
+            android:id="@+id/tvSize"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginBottom="25dp"
+            android:gravity="center"
+            android:hint="@string/size"
+            android:textColor="@color/white"
+            android:textColorHint="@color/white"
+            android:textSize="20sp"
+            app:layout_constraintBottom_toTopOf="@id/spinner"
+            app:layout_constraintEnd_toStartOf="@id/tvTimer"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <TextView
+            android:id="@+id/tvTimer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:hint="@string/crono"
+            android:layout_marginBottom="25dp"
+            android:textColor="@color/white"
+            android:textColorHint="@color/white"
+            android:textSize="20sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/spinner"
+            app:layout_constraintStart_toEndOf="@id/tvSize" />
+
+        <Spinner
+            android:id="@+id/spinner"
+            android:layout_width="200dp"
+            android:layout_height="40dp"
+            android:layout_marginTop="15dp"
+            android:layout_marginBottom="30dp"
+            android:backgroundTint="@color/black"
+            android:background="@color/white"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/linear"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <LinearLayout
+            android:id="@+id/linear"
             android:layout_width="match_parent"
-            android:layout_height="270dp"
-            android:background="@drawable/background_vertical"
-            android:orientation="vertical"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_horizontal"
+            android:layout_marginBottom="35dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent">
 
             <Space
-                android:id="@+id/space"
-                android:layout_width="wrap_content"
-                android:layout_height="15dp"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/tvTimer"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="15dp"
-                android:gravity="center"
-                android:hint="@string/crono"
-                android:textColor="@color/white"
-                android:textColorHint="@color/btnText"
-                android:textSize="20sp"
-                app:layout_constraintBottom_toTopOf="@+id/spinner"
-                app:layout_constraintEnd_toStartOf="@id/tvSize"
-                app:layout_constraintHorizontal_bias="0.8"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/space"
-                app:layout_constraintVertical_bias="0.754" />
+                android:layout_weight="1"/>
 
-            <TextView
-                android:id="@+id/tvSize"
+            <ImageButton
+                android:id="@+id/ibCancel"
+                android:layout_width="55dp"
+                android:layout_height="55dp"
+                android:background="@drawable/ic_record"
+                android:clickable="false"
+                android:fontFamily="@font/candara"
+                android:gravity="center"
+                android:src="@drawable/ic_close_24" />
+
+            <Space
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
+                android:layout_weight="1"/>
+
+            <ImageButton
+                android:id="@+id/ibRec"
+                android:layout_width="55dp"
+                android:layout_height="55dp"
+                android:background="@drawable/ic_ripple"
                 android:gravity="center"
-                android:hint="@string/size"
-                android:textColor="@color/white"
-                android:textColorHint="@color/btnText"
-                android:textSize="20sp"
-                app:layout_constraintBottom_toTopOf="@+id/spinner"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/tvTimer"
-                app:layout_constraintTop_toBottomOf="@id/space"
-                app:layout_constraintVertical_bias="0.826" />
+                android:src="@drawable/ic_stop_24" />
+            <Space
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"/>
 
 
-            <Spinner
-                android:id="@+id/spinner"
-                android:layout_width="200dp"
-                android:layout_height="40dp"
-                android:layout_marginBottom="32dp"
-                android:backgroundTint="@color/white"
-                android:popupBackground="@drawable/adapter_background"
-                app:layout_constraintBottom_toTopOf="@+id/linearLayout2"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent" />
+            <ImageButton
+                android:id="@+id/ibDone"
+                android:layout_width="55dp"
+                android:layout_height="55dp"
+                android:background="@drawable/ic_record"
+                android:fontFamily="@font/candara"
+                android:gravity="center"
+                android:src="@drawable/ic_done_24" />
+            <Space
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"/>
 
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/linearLayout2"
-                android:layout_width="match_parent"
-                android:layout_height="60dp"
-                android:layout_marginBottom="24dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent">
-
-
-                <ImageButton
-                    android:id="@+id/ibCancel"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:background="@drawable/ic_record"
-                    android:clickable="false"
-                    android:elevation="8dp"
-                    android:fontFamily="@font/candara"
-                    android:gravity="center"
-                    android:src="@drawable/ic_close_24"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toStartOf="@+id/ibRec"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
-
-                <ImageButton
-                    android:id="@+id/ibRec"
-                    android:layout_width="55dp"
-                    android:layout_height="55dp"
-                    android:background="@drawable/ic_ripple"
-                    android:elevation="8dp"
-                    android:gravity="center"
-                    android:src="@drawable/ic_stop_24"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
-
-                <ImageButton
-                    android:id="@+id/ibDone"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:background="@drawable/ic_record"
-                    android:elevation="8dp"
-                    android:fontFamily="@font/candara"
-                    android:gravity="center"
-                    android:src="@drawable/ic_done_24"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toEndOf="@+id/ibRec"
-                    app:layout_constraintTop_toTopOf="parent" />
-
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
+        </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -190,8 +165,11 @@
         android:background="@color/opaque"
         android:visibility="gone" />
 
-    <include layout="@layout/bottom_sheet" />
+    <include
+        layout="@layout/bottom_sheet"/>
 
-    <include layout="@layout/bottom_sheet_rec" />
+    <include
+        layout="@layout/bottom_sheet_rec"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
+

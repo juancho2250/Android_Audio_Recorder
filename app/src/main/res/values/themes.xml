@@ -1,6 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Base.Theme.MyAudioRecorder" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Base.Theme.MyAudioRecorder" parent="Theme.AppCompat.NoActionBar">
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
     </style>
@@ -17,5 +17,11 @@
         <item name="boxCornerRadiusTopStart">20dp</item>
         <item name="endIconMode">clear_text</item>
         <item name="startIconDrawable">@drawable/ic_search_24</item>
+    </style>
+
+    <style name="SplashTheme" parent="@style/Base.Theme.MyAudioRecorder">
+        <item name="windowSplashScreenBackground">@color/fill2</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/sound_cloud</item>
+        <item name="postSplashScreenTheme">"@style/Base.Theme.MyAudioRecorder"</item>
     </style>
 </resources>

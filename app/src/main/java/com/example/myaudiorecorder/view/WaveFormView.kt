@@ -27,7 +27,7 @@ class WaveFormView(context: Context?, attrs: AttributeSet) : View(context, attrs
         maxSpikes = (sw / (w + d)).toInt()
     }
     fun addAmplitud(amp: Float) {
-        var norm = Math.min(amp.toInt() / 7, 400).toFloat()
+        var norm = Math.min(amp.toInt() / 9, 400).toFloat()
         amplitudes.add(norm)
         spikes.clear()
         var amps = amplitudes.takeLast(maxSpikes)
