@@ -11,6 +11,18 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
+        <ImageButton
+            android:id="@+id/fab"
+            android:layout_width="65dp"
+            android:layout_height="65dp"
+            android:layout_marginRight="25dp"
+            android:layout_marginBottom="25dp"
+            android:background="@drawable/ic_record"
+            android:src="@drawable/ic_add_24"
+            android:visibility="visible"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
         <com.example.myaudiorecorder.view.WaveFormView
             android:id="@+id/waveForm"
             android:layout_width="match_parent"
@@ -56,103 +68,129 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/textInputLayout" />
 
-        <TextView
-            android:id="@+id/tvSize"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginBottom="25dp"
-            android:gravity="center"
-            android:hint="@string/size"
-            android:textColor="@color/white"
-            android:textColorHint="@color/white"
-            android:textSize="20sp"
-            app:layout_constraintBottom_toTopOf="@id/spinner"
-            app:layout_constraintEnd_toStartOf="@id/tvTimer"
-            app:layout_constraintStart_toStartOf="parent" />
-
-        <TextView
-            android:id="@+id/tvTimer"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:hint="@string/crono"
-            android:layout_marginBottom="25dp"
-            android:textColor="@color/white"
-            android:textColorHint="@color/white"
-            android:textSize="20sp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/spinner"
-            app:layout_constraintStart_toEndOf="@id/tvSize" />
-
-        <Spinner
-            android:id="@+id/spinner"
-            android:layout_width="200dp"
-            android:layout_height="40dp"
-            android:layout_marginTop="15dp"
-            android:layout_marginBottom="30dp"
-            android:backgroundTint="@color/black"
-            android:background="@color/white"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/linear"
-            app:layout_constraintStart_toStartOf="parent" />
-
         <LinearLayout
-            android:id="@+id/linear"
+            android:id="@+id/buttons"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:layout_height="240dp"
             android:gravity="center_horizontal"
-            android:layout_marginBottom="35dp"
+            android:orientation="vertical"
+            android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent">
 
-            <Space
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"/>
+                android:orientation="horizontal"
+                android:paddingTop="15dp">
 
-            <ImageButton
-                android:id="@+id/ibCancel"
-                android:layout_width="55dp"
-                android:layout_height="55dp"
-                android:background="@drawable/ic_record"
-                android:clickable="false"
-                android:fontFamily="@font/candara"
-                android:gravity="center"
-                android:src="@drawable/ic_close_24" />
+                <Space
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1" />
 
-            <Space
-                android:layout_width="wrap_content"
+                <TextView
+                    android:id="@+id/tvSize"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:hint="@string/size"
+                    android:textColor="@color/white"
+                    android:textColorHint="@color/white"
+                    android:textSize="20sp" />
+
+                <Space
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1" />
+
+                <TextView
+                    android:id="@+id/tvTimer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:hint="@string/crono"
+                    android:textColor="@color/white"
+                    android:textColorHint="@color/white"
+                    android:textSize="20sp" />
+
+                <Space
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1" />
+
+            </LinearLayout>
+
+            <Spinner
+                android:id="@+id/spinner"
+                android:layout_width="200dp"
+                android:layout_height="40dp"
+                android:layout_marginTop="15dp"
+                android:layout_marginBottom="30dp"
+                android:background="@color/white"
+                android:backgroundTint="@color/black" />
+
+            <LinearLayout
+                android:id="@+id/linear"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"/>
+                android:layout_marginBottom="35dp"
+                android:gravity="center_horizontal"
+                android:orientation="horizontal"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent">
 
-            <ImageButton
-                android:id="@+id/ibRec"
-                android:layout_width="55dp"
-                android:layout_height="55dp"
-                android:background="@drawable/ic_ripple"
-                android:gravity="center"
-                android:src="@drawable/ic_stop_24" />
-            <Space
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"/>
+                <Space
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1" />
+
+                <ImageButton
+                    android:id="@+id/ibCancel"
+                    android:layout_width="55dp"
+                    android:layout_height="55dp"
+                    android:background="@drawable/ic_record"
+                    android:clickable="false"
+                    android:fontFamily="@font/candara"
+                    android:gravity="center"
+                    android:src="@drawable/ic_close_24" />
+
+                <Space
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1" />
+
+                <ImageButton
+                    android:id="@+id/ibRec"
+                    android:layout_width="55dp"
+                    android:layout_height="55dp"
+                    android:background="@drawable/ic_ripple"
+                    android:gravity="center"
+                    android:src="@drawable/ic_stop_24" />
+
+                <Space
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1" />
 
 
-            <ImageButton
-                android:id="@+id/ibDone"
-                android:layout_width="55dp"
-                android:layout_height="55dp"
-                android:background="@drawable/ic_record"
-                android:fontFamily="@font/candara"
-                android:gravity="center"
-                android:src="@drawable/ic_done_24" />
-            <Space
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"/>
+                <ImageButton
+                    android:id="@+id/ibDone"
+                    android:layout_width="55dp"
+                    android:layout_height="55dp"
+                    android:background="@drawable/ic_record"
+                    android:fontFamily="@font/candara"
+                    android:gravity="center"
+                    android:src="@drawable/ic_done_24" />
+
+                <Space
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1" />
+
+            </LinearLayout>
 
         </LinearLayout>
 
@@ -165,11 +203,9 @@
         android:background="@color/opaque"
         android:visibility="gone" />
 
-    <include
-        layout="@layout/bottom_sheet"/>
+    <include layout="@layout/bottom_sheet" />
 
-    <include
-        layout="@layout/bottom_sheet_rec"/>
+    <include layout="@layout/bottom_sheet_rec" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
 

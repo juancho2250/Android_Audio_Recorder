@@ -17,6 +17,7 @@ import android.os.Vibrator
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.ImageButton
@@ -83,6 +84,7 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
     private var isRecording = false
     private var isPaused = false
     private var duration = ""
+    private var visibility = true
     private lateinit var vibrator: Vibrator
     private lateinit var waveFormView: WaveFormView
     private lateinit var searchInput: TextInputEditText
@@ -90,7 +92,6 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
     private lateinit var bottomSheetBehaviorRec: BottomSheetBehavior<LinearLayout>
     private var seekBar: SeekBar? = null
     private var ibPlay: ImageButton? = null
-    private var isRippleIcon = false
     private lateinit var timer: Timer
 
     @SuppressLint("SetTextI18n")
@@ -105,15 +106,17 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
         val bottomSheet = root.findViewById<LinearLayout>(R.id.bottomSheet)
         val bottomSheetRec = root.findViewById<LinearLayout>(R.id.bottomSheetRec)
         val ibPlay = root.findViewById<ImageButton>(R.id.ibPlay)
-
+        val buttons = binding.buttons
         val ibDelete = root.findViewById<ImageButton>(R.id.ibDelete)
         val ibRec = binding.ibRec
         val ibDone = binding.ibDone
+        val fab = binding.fab
         val ibCancel = binding.ibCancel
         val bottomSheetBG = binding.bottomSheetBG
         val btnCancel = root.findViewById<Button>(R.id.btnCancel)
         val recTitle = root.findViewById<TextInputEditText>(R.id.recTitle)
         val btnSave = root.findViewById<Button>(R.id.btnSave)
+        val btnForward = root.findViewById<ImageButton>(R.id.ibForward)
         val spinner = binding.spinner
         val tvTimer = binding.tvTimer
         val options = arrayOf("Calidad Alta", "Calidad Media", "Calidad Baja")
@@ -185,6 +188,24 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
             }
         })
 
+        if(visibility){
+            buttons.visibility = View.GONE
+            fab.visibility = View.VISIBLE
+        } else {
+            buttons.visibility = View.VISIBLE
+            fab.visibility = View.GONE
+        }
+
+        btnForward.setOnClickListener {
+            mediaPlayer.stop()
+            bottomSheetBehaviorRec.state = BottomSheetBehavior.STATE_COLLAPSED
+            fab.visibility = View.VISIBLE
+            buttons.visibility = View.GONE
+        }
+        fab.setOnClickListener {
+            fab.visibility = View.GONE
+            buttons.visibility = View.VISIBLE
+        }
         ibShare.setOnClickListener {
             share()
         }
@@ -194,6 +215,8 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
         ibCancel.setOnClickListener {
             stopRecorder()
             deleteRecording()
+            fab.visibility = View.VISIBLE
+            buttons.visibility = View.GONE
         }
         ibRec.setOnClickListener {
             ibCancel.isClickable = true
@@ -228,11 +251,19 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
         btnSave.setOnClickListener {
             save()
             bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+            fab.visibility = View.VISIBLE
+            buttons.visibility = View.GONE
         }
         ibDelete.setOnClickListener {
             deleteRecords()
         }
 
+    }
+    fun hideKeyboard() {
+        val root = binding.root
+        val recTitle = root.findViewById<TextInputEditText>(R.id.recTitle)
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(recTitle.getWindowToken(), 0)
     }
     private fun checkPermissions() {
         permissionGranted = ActivityCompat.checkSelfPermission(
@@ -287,6 +318,9 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
         startActivity(Intent.createChooser(intent, "Compartir grabaciones"))
     }
     private fun deleteRecords() {
+        visibility = true
+        hideKeyboard()
+
         val nbRecords = records.count { it.isChecked }
 
         if (nbRecords > 0) {
@@ -365,9 +399,11 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
                     mediaPlayer.seekTo(progress)
                 }
             }
+
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
                 mediaPlayer.pause()
             }
+
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
                 mediaPlayer.start()
             }
@@ -380,9 +416,9 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
             handler.removeCallbacks(runnable)
 
         } else {
+            mediaPlayer
             // If MediaPlayer is paused, start it
             ibPlay!!.setImageResource(R.drawable.ic_play_24)
-            mediaPlayer.start()
         }
     }
     private fun save() {
@@ -401,7 +437,7 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
                     fetchAll()
                     showSnackb(resources.getString(R.string.saveOk))
                 }
-
+                hideKeyboard()
                 stopRecorder()
             }
         } catch (e: Exception) {
@@ -417,7 +453,7 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
                 val queryResult = withContext(Dispatchers.IO) {
                     db.audioRecordDao().getAll()
                 }
-                 withContext(Dispatchers.Main) {
+                withContext(Dispatchers.Main) {
                     records.addAll(queryResult)
                     mAdapter.notifyDataSetChanged()
                 }
@@ -450,7 +486,7 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
         bottomSheetBehaviorRec.state = BottomSheetBehavior.STATE_COLLAPSED
     }
     private fun startRecording() {
-        if(mediaPlayer.isPlaying){
+        if (mediaPlayer.isPlaying) {
             mediaPlayer.stop()
         }
         val waveFormView = binding.waveForm
@@ -602,6 +638,8 @@ class MainActivity : AppCompatActivity(), Timer.OnTimerTickListener, onItemClick
     }
     override fun onItemLongClickListener(position: Int) {
         val root = binding.root
+        visibility = false
+        bottomSheetBehaviorRec.state = BottomSheetBehavior.STATE_EXPANDED
         //edit mode on
         mAdapter.setEditMode(true)
         records[position].isChecked = !records[position].isChecked
